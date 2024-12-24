@@ -20,39 +20,48 @@ import java.util.Objects;
 @Builder
 public final class MatcherTradeEvent {
 
-    public MatcherEventType eventType; // TRADE, REDUCE, REJECT (rare) or BINARY_EVENT (reports data)
+    // 事件类型，TRADE、REDUCE、REJECT 或 BINARY_EVENT
+    public MatcherEventType eventType;
 
+    // 事件所属的区段
     public int section;
 
-    // TODO join (requires 11+ bits)
-    // false, except when activeOrder is completely filled, removed or rejected
-    // it is always true for REJECT event
-    // it is true for REDUCE event if reduce was triggered by COMMAND
+    // 是否已完成活动订单
+    // 默认情况下，除了当活动订单完全成交、被移除或被拒绝时为真；
+    // 对于 REJECT 事件来说，一定为真；
+    // 对于 REDUCE 事件，如果减仓是由 COMMAND 触发的，则为真
     public boolean activeOrderCompleted;
 
-    // maker (for TRADE event type only)
+    // 对于 TRADE 类型的事件，这是 maker 订单的信息
+    // maker 订单 ID
     public long matchedOrderId;
-    public long matchedOrderUid; // 0 for rejection
-    public boolean matchedOrderCompleted; // false, except when matchedOrder is completely filled
 
-    // actual price of the deal (from maker order), 0 for rejection (price can be take from original order)
+    // matchedOrderUid 为 0 时，表示该订单被拒绝
+    public long matchedOrderUid;
+
+    // matchedOrderCompleted 表示该匹配订单是否已经完成
+    // 默认为 false，只有在匹配订单完全成交时才为真
+    public boolean matchedOrderCompleted;
+
+    // 交易的实际价格（来自 maker 订单），如果是拒绝事件，则价格为 0
+    // 对于 REJECT 事件，可以从原始订单中取价格
     public long price;
 
-    // TRADE - trade size
-    // REDUCE - effective reduce size of REDUCE command, or not filled size for CANCEL command
-    // REJECT - unmatched size of rejected order
+    // 交易的大小（对于 TRADE 事件），
+    // 对于 REDUCE 事件，表示 REDUCE 命令的有效减仓量，或 CANCEL 命令未成交的订单量
+    // 对于 REJECT 事件，表示被拒绝订单的未成交部分
     public long size;
 
-    //public long timestamp; // same as activeOrder related event timestamp
+    // timestamp 时间戳，表示活动订单相关的事件时间（注释掉，未启用）
+    // public long timestamp;
 
-    // frozen price from BID order owner (depends on activeOrderAction)
+    // 投标人持有价格，依赖于活动订单的动作（买卖等）
     public long bidderHoldPrice;
 
-    // reference to next event in chain
+    // 当前事件的下一个事件（链式结构）
     public MatcherTradeEvent nextEvent;
 
-
-    // testing only
+    // 仅用于测试，复制当前事件
     public MatcherTradeEvent copy() {
         MatcherTradeEvent evt = new MatcherTradeEvent();
         evt.eventType = this.eventType;
@@ -63,12 +72,12 @@ public final class MatcherTradeEvent {
         evt.matchedOrderCompleted = this.matchedOrderCompleted;
         evt.price = this.price;
         evt.size = this.size;
-//        evt.timestamp = this.timestamp;
+        // evt.timestamp = this.timestamp;
         evt.bidderHoldPrice = this.bidderHoldPrice;
         return evt;
     }
 
-    // testing only
+    // 仅用于测试，查找链表末尾事件
     public MatcherTradeEvent findTail() {
         MatcherTradeEvent tail = this;
         while (tail.nextEvent != null) {
@@ -77,6 +86,7 @@ public final class MatcherTradeEvent {
         return tail;
     }
 
+    // 获取链表的大小
     public int getChainSize() {
         MatcherTradeEvent tail = this;
         int c = 1;
@@ -87,6 +97,7 @@ public final class MatcherTradeEvent {
         return c;
     }
 
+    // 创建事件链，链长为 chainLength
     @NotNull
     public static MatcherTradeEvent createEventChain(int chainLength) {
         final MatcherTradeEvent head = new MatcherTradeEvent();
@@ -99,8 +110,7 @@ public final class MatcherTradeEvent {
         return head;
     }
 
-
-    // testing only
+    // 仅用于测试，将事件链转换为 List
     public static List<MatcherTradeEvent> asList(MatcherTradeEvent next) {
         List<MatcherTradeEvent> list = new ArrayList<>();
         while (next != null) {
@@ -111,7 +121,7 @@ public final class MatcherTradeEvent {
     }
 
     /**
-     * Compare next events chain as well.
+     * 比较两个事件链是否相等（包括链中的所有事件）
      */
     @Override
     public boolean equals(Object o) {
@@ -120,7 +130,7 @@ public final class MatcherTradeEvent {
         if (!(o instanceof MatcherTradeEvent)) return false;
         MatcherTradeEvent other = (MatcherTradeEvent) o;
 
-        // ignore timestamp
+        // 忽略 timestamp（未启用）
         return section == other.section
                 && activeOrderCompleted == other.activeOrderCompleted
                 && matchedOrderId == other.matchedOrderId
@@ -133,7 +143,7 @@ public final class MatcherTradeEvent {
     }
 
     /**
-     * Includes chaining events
+     * 包括事件链的哈希计算
      */
     @Override
     public int hashCode() {
@@ -149,7 +159,6 @@ public final class MatcherTradeEvent {
                 nextEvent);
     }
 
-
     @Override
     public String toString() {
         return "MatcherTradeEvent{" +
@@ -161,9 +170,10 @@ public final class MatcherTradeEvent {
                 ", matchedOrderCompleted=" + matchedOrderCompleted +
                 ", price=" + price +
                 ", size=" + size +
-//                ", timestamp=" + timestamp +
+                // ", timestamp=" + timestamp +
                 ", bidderHoldPrice=" + bidderHoldPrice +
                 ", nextEvent=" + (nextEvent != null) +
                 '}';
     }
 }
+

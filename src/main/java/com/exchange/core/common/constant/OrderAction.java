@@ -5,7 +5,9 @@ import lombok.Getter;
 @Getter
 public enum OrderAction {
 
+    // 卖出
     ASK(0),
+    // 买入
     BID(1);
 
     private byte code;
